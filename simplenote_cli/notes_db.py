@@ -571,7 +571,9 @@ class NotesDB():
         if not server_sync:
             nl = []
         else:
-            nl = self.simplenote.get_note_list()
+            # partial syncs only fetch notes changed since the last fetch
+            nl = self.simplenote.get_note_list(
+                    cv=None if full_sync else self.simplenote.cv)
 
             if nl[1] == 0:  # success
                 nl = nl[0]
