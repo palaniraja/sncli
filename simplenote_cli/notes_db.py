@@ -377,6 +377,25 @@ class NotesDB():
         if what_changed not in note['what_changed']:
             note['what_changed'].append(what_changed)
 
+    def delete_note(self, key):
+        """Permanently delete a trashed note on the server and locally.
+        Returns True on success. Server failure leaves the note untouched."""
+        n = self.notes.get(key)
+        if not n or not n.get('deleted'):
+            return False
+        with self.sync_lock:
+            if n.get('key'):
+                ret = self.simplenote.delete_note(n['key'])
+                if ret[1] != 0:
+                    self.log('ERROR: Failed to delete note on server (key={0}): {1}'.format(key, ret[0]))
+                    return False
+            del self.notes[key]
+            fn = self.helper_key_to_fname(key)
+            if os.path.exists(fn):
+                os.unlink(fn)
+        self.log('Note permanently deleted (key={0})'.format(key))
+        return True
+
     def set_note_deleted(self, key, deleted):
         n = self.notes[key]
         if n['deleted'] != deleted:

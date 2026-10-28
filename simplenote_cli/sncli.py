@@ -379,6 +379,20 @@ class sncli:
         self.gui_update_status_bar()
         self.ndb.sync_worker_go()
 
+    def delete_note_callback(self, key, yes):
+        if not yes:
+            return
+
+        if not self.ndb.delete_note(key):
+            return
+
+        self.preview_focused = False
+        if self.gui_body_get().__class__ == view_note.ViewNote:
+            self.gui_switch_frame_body(None)
+        self.view_titles.update_note_list(self.view_titles.search_string,
+                                          sort_mode=self.current_sort_mode)
+        self.gui_body_set(self.view_titles)
+
     def restore_note_callback(self, key, yes):
         if not yes:
             return
@@ -799,6 +813,34 @@ class sncli:
                         '',
                         self.gui_yes_no_input,
                         [ self.trash_note_callback, note['localkey'] ]),
+                    'user_input_bar'))
+            self.gui_footer_focus_input()
+            self.master_frame.keypress = self.gui_footer_input_get().keypress
+
+        elif key == self.config.get_keybind('note_delete'):
+            if self.gui_body_get().__class__ != view_titles.ViewTitles and \
+               self.gui_body_get().__class__ != view_note.ViewNote:
+                return key
+
+            if self.gui_body_get().__class__ == view_titles.ViewTitles:
+                if len(lb.body.positions()) <= 0:
+                    return None
+                note = lb.note_list[lb.focus_position].note
+            else: # self.gui_body_get().__class__ == view_note.ViewNote:
+                note = lb.note
+
+            if not note or not note.get('deleted'):
+                self.log('Only trashed notes can be deleted (trash it first)')
+                return None
+
+            self.gui_footer_input_set(
+                urwid.AttrMap(
+                    user_input.UserInput(
+                        self.config,
+                        'Delete permanently? (y/n): ',
+                        '',
+                        self.gui_yes_no_input,
+                        [ self.delete_note_callback, note['localkey'] ]),
                     'user_input_bar'))
             self.gui_footer_focus_input()
             self.master_frame.keypress = self.gui_footer_input_get().keypress
@@ -1260,6 +1302,19 @@ class sncli:
         self.ndb.set_note_deleted(key, trash)
         self.sync_notes()
 
+    def cli_note_delete(self, key):
+
+        note = self.ndb.get_note(key)
+        if not note:
+            self.log('ERROR: Key does not exist')
+            return
+
+        if not note.get('deleted'):
+            self.log('ERROR: Only trashed notes can be deleted (trash it first)')
+            return
+
+        self.ndb.delete_note(key)
+
     def cli_note_pin(self, key, pin):
 
         note = self.ndb.get_note(key)
@@ -1372,6 +1427,7 @@ Usage:
   dump                        - dump a note (specified by <key>)
   edit [+line_number]         - edit a note (specified by <key>, optionally jump to line)
   < trash | untrash >         - trash/untrash a note (specified by <key>)
+  delete                      - permanently delete a trashed note (specified by <key>)
   < pin | unpin >             - pin/unpin a note (specified by <key>)
   < markdown | unmarkdown >   - markdown/unmarkdown a note (specified by <key>)
   tag get                     - retrieve the tags from a note (specified by <key>)
@@ -1497,6 +1553,14 @@ def main(argv=sys.argv[1:]):
 
         sn = sncli_start()
         sn.cli_note_trash(key, 1 if args[0] == 'trash' else 0)
+
+    elif args[0] == 'delete':
+
+        if not key:
+            usage()
+
+        sn = sncli_start()
+        sn.cli_note_delete(key)
 
     elif args[0] == 'pin' or args[0] == 'unpin':
 

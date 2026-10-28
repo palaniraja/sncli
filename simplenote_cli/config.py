@@ -74,6 +74,7 @@ class Config:
          'kb_sort_alpha'      : 'a',
          'kb_sort_tags'       : 'ctrl t',
          'kb_note_trash'      : 'T',
+         'kb_note_delete'     : 'X',
          'kb_note_pin'        : 'p',
          'kb_note_markdown'   : 'm',
          'kb_note_tags'       : 't',
@@ -242,6 +243,7 @@ class Config:
         self.keybinds['sort_alpha'] = [ cp.get(cfg_sec, 'kb_sort_alpha'), [ 'titles' ], 'Sort notes by alpha' ]
         self.keybinds['sort_tags'] = [ cp.get(cfg_sec, 'kb_sort_tags'), [ 'titles' ], 'Sort notes by tags' ]
         self.keybinds['note_trash'] = [ cp.get(cfg_sec, 'kb_note_trash'), [ 'titles', 'notes' ], 'Trash a note' ]
+        self.keybinds['note_delete'] = [ cp.get(cfg_sec, 'kb_note_delete'), [ 'titles', 'notes' ], 'Permanently delete a trashed note' ]
         self.keybinds['note_pin'] = [ cp.get(cfg_sec, 'kb_note_pin'), [ 'titles', 'notes' ], 'Pin note' ]
         self.keybinds['note_markdown'] = [ cp.get(cfg_sec, 'kb_note_markdown'), [ 'titles', 'notes' ], 'Flag note as markdown' ]
         self.keybinds['note_tags'] = [ cp.get(cfg_sec, 'kb_note_tags'), [ 'titles', 'notes' ], 'Edit note tags' ]
