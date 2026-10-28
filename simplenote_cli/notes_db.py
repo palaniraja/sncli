@@ -70,6 +70,10 @@ class NotesDB():
         self.simplenote = Simplenote(self.config.get_config('sn_username'),
                                      self.config.get_config('sn_password'))
 
+        # resume from the last server change version so startup only
+        # fetches notes changed since the previous run
+        self.load_cv()
+
         # we'll use this to store which notes are currently being synced by
         # the background thread, so we don't add them anew if they're still
         # in progress. This variable is only used by the background thread.
@@ -430,6 +434,34 @@ class NotesDB():
             self.flag_what_changed(n, 'systemTags')
             self.log('Note markdown {0} (key={1})'.format('flagged' if markdown else 'unflagged', key))
 
+    def helper_cv_fname(self):
+        # not .json, so it is never picked up as a note
+        return os.path.join(self.config.get_config('db_path'), 'sync_cv.state')
+
+    def load_cv(self):
+        try:
+            with open(self.helper_cv_fname()) as f:
+                state = json.load(f)
+        except (IOError, ValueError):
+            return
+        # a cv is only valid for the account it came from
+        if state.get('user') == self.config.get_config('sn_username') and state.get('cv'):
+            self.simplenote.cv = state['cv']
+            self.last_sync = state.get('time', 1) # non-zero: skip startup full sync
+
+    def save_cv(self):
+        fn = self.helper_cv_fname()
+        if not self.simplenote.cv:
+            if os.path.exists(fn):
+                os.unlink(fn)
+            return
+        tmp = fn + '.tmp'
+        with open(tmp, 'w') as f:
+            json.dump({'user': self.config.get_config('sn_username'),
+                       'cv': self.simplenote.cv,
+                       'time': time.time()}, f)
+        os.replace(tmp, fn)
+
     def helper_key_to_fname(self, k):
         return os.path.join(self.config.get_config('db_path'), k) + '.json'
 
@@ -642,6 +674,12 @@ class NotesDB():
             if os.path.exists(fn):
                 os.unlink(fn)
                 self.log("Deleted note from disk (key={0})".format(k))
+
+        if server_sync:
+            try:
+                self.save_cv()
+            except OSError as e:
+                self.log('ERROR: Failed to save sync state: ' + str(e))
 
         if not sync_errors:
             self.last_sync = sync_start_time
