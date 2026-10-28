@@ -20,10 +20,12 @@ class WriteError(RuntimeError):
 class NotesDB():
     """NotesDB will take care of the local notes database and syncing with SN.
     """
-    def __init__(self, config, log, update_view):
+    def __init__(self, config, log, update_view, update_status=lambda: None):
         self.config      = config
         self.log         = log
         self.update_view = update_view
+        self.update_status = update_status
+        self.syncing     = False
 
         self.last_sync = 0 # set to zero to trigger a full sync
         self.sync_lock = threading.Lock()
@@ -685,9 +687,15 @@ class NotesDB():
 
     def sync_now(self, do_server_sync=True) -> int:
         self.sync_lock.acquire()
-        n_errors = self.sync_notes(server_sync=do_server_sync,
-                        full_sync=True if not self.last_sync else False)
-        self.sync_lock.release()
+        self.syncing = True
+        self.update_status()
+        try:
+            n_errors = self.sync_notes(server_sync=do_server_sync,
+                            full_sync=True if not self.last_sync else False)
+        finally:
+            self.syncing = False
+            self.update_status()
+            self.sync_lock.release()
         return n_errors
 
     # sync worker thread...

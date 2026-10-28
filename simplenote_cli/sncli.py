@@ -48,7 +48,7 @@ class sncli:
         self.default_markdown = self.config.get_config('default_markdown') == 'yes'
 
         try:
-            self.ndb = NotesDB(self.config, self.log, self.gui_update_view)
+            self.ndb = NotesDB(self.config, self.log, self.gui_update_view, self.gui_update_status_bar)
         except Exception as e:
             self.log(str(e))
             sys.exit(1)
@@ -313,10 +313,15 @@ class sncli:
         self.gui_update_status_bar()
 
     def gui_update_status_bar(self):
+        if not self.do_gui:
+            return
         if self.status_bar != 'yes':
             self.gui_header_clear()
         else:
-            self.gui_header_set(self.gui_body_get().get_status_bar())
+            w = self.gui_body_get().get_status_bar()
+            if self.ndb.syncing:
+                w = urwid.Columns([w, ('pack', urwid.AttrMap(urwid.Text(' syncing... '), 'status_bar'))])
+            self.gui_header_set(w)
 
     def gui_switch_frame_body(self, new_view, save_current_view=True):
         if new_view == None:
