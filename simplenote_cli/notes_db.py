@@ -697,7 +697,7 @@ class NotesDB():
         self.sync_now(do_server_sync)
         while True:
             self.go_cond.acquire()
-            self.go_cond.wait(15)
+            self.go_cond.wait(int(self.config.get_config('sync_interval')))
             self.sync_now(do_server_sync)
             self.go_cond.release()
 
