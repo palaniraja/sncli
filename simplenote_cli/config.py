@@ -47,6 +47,7 @@ class Config:
          'kb_create_note'     : 'C',
          'kb_edit_note'       : 'e',
          'kb_view_note'       : 'enter',
+         'kb_focus_pane'      : 'tab',
          'kb_view_note_ext'   : 'meta enter',
          'kb_view_note_json'  : 'O',
          'kb_pipe_note'       : '|',
@@ -215,6 +216,7 @@ class Config:
         self.keybinds['create_note'] = [ cp.get(cfg_sec, 'kb_create_note'), [ 'titles' ], 'Create a new note' ]
         self.keybinds['edit_note'] = [ cp.get(cfg_sec, 'kb_edit_note'), [ 'titles', 'notes' ], 'Edit note' ]
         self.keybinds['view_note'] = [ cp.get(cfg_sec, 'kb_view_note'), [ 'titles' ], 'View note' ]
+        self.keybinds['focus_pane'] = [ cp.get(cfg_sec, 'kb_focus_pane'), [ 'titles', 'notes' ], 'Switch pane (nvalt layout)' ]
         self.keybinds['view_note_ext'] = [ cp.get(cfg_sec, 'kb_view_note_ext'), [ 'titles', 'notes' ], 'View note with pager' ]
         self.keybinds['view_note_json'] = [ cp.get(cfg_sec, 'kb_view_note_json'), [ 'titles', 'notes' ], 'View note raw json' ]
         self.keybinds['pipe_note'] = [ cp.get(cfg_sec, 'kb_pipe_note'), [ 'titles', 'notes' ], 'Pipe note contents' ]

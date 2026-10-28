@@ -20,6 +20,7 @@ class sncli:
         self.verbose        = verbose
         self.do_gui         = False
         self.nvalt_panes    = None
+        self.preview_focused = False
         force_full_sync     = False
         self.current_sort_mode = self.config.get_config('sort_mode')
 
@@ -232,15 +233,23 @@ class sncli:
         self.sncli_loop.draw_screen()
 
     def gui_body_set(self, w):
-        if self.nvalt_panes and w is self.view_titles:
+        if self.nvalt_panes and (w is self.view_titles or
+                                 (w is self.view_note and self.preview_focused)):
             w = self.nvalt_panes
+            w.focus_position = 1 if self.preview_focused else 0
         self.master_frame.contents['body'] = ( w, None )
         self.gui_update_status_bar()
         self.sncli_loop.draw_screen()
 
     def gui_body_get(self):
         b = self.master_frame.contents['body'][0]
-        return self.view_titles if b is self.nvalt_panes else b
+        if b is self.nvalt_panes:
+            return self.view_note if self.preview_focused else self.view_titles
+        return b
+
+    def gui_panes_shown(self):
+        return self.nvalt_panes is not None and \
+               self.master_frame.contents['body'][0] is self.nvalt_panes
 
     def gui_body_focus(self):
         self.master_frame.focus_position = 'body'
@@ -317,15 +326,19 @@ class sncli:
         self.gui_update_status_bar()
 
     def gui_update_preview(self):
-        if not self.nvalt_panes:
+        if self.preview_focused or not self.gui_panes_shown():
             return
         lb = self.view_titles
-        if len(lb.body.positions()) > 0:
-            key = lb.note_list[lb.focus_position].note['localkey']
-            self.view_preview.update_note_view(key)
-        elif self.view_preview.key:
-            self.view_preview.key = None
-            self.view_preview.update_note_view()
+        vn = self.view_note
+        if len(lb.body.positions()) == 0:
+            if vn.key:
+                vn.key = vn.note = vn.old_note = None
+                vn.body[:] = []
+            return
+        note = lb.note_list[lb.focus_position].note
+        if note['localkey'] != vn.key or note.get('content') != self.preview_content:
+            vn.update_note_view(note['localkey'])
+            self.preview_content = note.get('content')
 
     def gui_update_status_bar(self):
         if not self.do_gui:
@@ -461,6 +474,19 @@ class sncli:
             key = 'space'
 
         lb = self.gui_body_get()
+
+        if self.gui_panes_shown():
+            if key == self.config.get_keybind('focus_pane') or \
+               (key == self.config.get_keybind('quit') and self.preview_focused):
+                if self.preview_focused or self.view_note.key:
+                    self.preview_focused = not self.preview_focused
+                    self.nvalt_panes.focus_position = 1 if self.preview_focused else 0
+                    self.gui_update_status_bar()
+                return None
+            # give scroll keys the size of the focused pane
+            widths = self.nvalt_panes.column_widths(size)
+            size = (widths[1] - 2, size[1] - 2) if self.preview_focused \
+                   else (widths[0], size[1])
 
         if key == self.config.get_keybind('quit'):
             self.gui_switch_frame_body(None)
@@ -934,7 +960,9 @@ class sncli:
             self.view_note.copy_note_text()
 
         else:
-            return lb.keypress(size, key)
+            r = lb.keypress(size, key)
+            self.gui_update_status_bar()
+            return r
 
         self.gui_update_status_bar()
         return None
@@ -1003,17 +1031,11 @@ class sncli:
         self.view_help = view_help.ViewHelp(self.config)
 
         self.nvalt_panes = None
+        self.preview_content = None
         if self.config.get_config('layout') == 'nvalt':
-            self.view_preview = \
-                view_note.ViewNote(self.config,
-                                   {
-                                    'ndb' : self.ndb,
-                                    'key' : None,
-                                    'log' : self.log
-                                   })
             self.nvalt_panes = urwid.Columns([
                 ('weight', 1, self.view_titles),
-                ('weight', 2, urwid.LineBox(self.view_preview)) ])
+                ('weight', 2, urwid.LineBox(self.view_note)) ])
 
         palette = \
           [
