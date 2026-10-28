@@ -19,6 +19,7 @@ class sncli:
         self.do_server_sync = do_server_sync
         self.verbose        = verbose
         self.do_gui         = False
+        self.nvalt_panes    = None
         force_full_sync     = False
         self.current_sort_mode = self.config.get_config('sort_mode')
 
@@ -231,12 +232,15 @@ class sncli:
         self.sncli_loop.draw_screen()
 
     def gui_body_set(self, w):
+        if self.nvalt_panes and w is self.view_titles:
+            w = self.nvalt_panes
         self.master_frame.contents['body'] = ( w, None )
         self.gui_update_status_bar()
         self.sncli_loop.draw_screen()
 
     def gui_body_get(self):
-        return self.master_frame.contents['body'][0]
+        b = self.master_frame.contents['body'][0]
+        return self.view_titles if b is self.nvalt_panes else b
 
     def gui_body_focus(self):
         self.master_frame.focus_position = 'body'
@@ -312,9 +316,21 @@ class sncli:
 
         self.gui_update_status_bar()
 
+    def gui_update_preview(self):
+        if not self.nvalt_panes:
+            return
+        lb = self.view_titles
+        if len(lb.body.positions()) > 0:
+            key = lb.note_list[lb.focus_position].note['localkey']
+            self.view_preview.update_note_view(key)
+        elif self.view_preview.key:
+            self.view_preview.key = None
+            self.view_preview.update_note_view()
+
     def gui_update_status_bar(self):
         if not self.do_gui:
             return
+        self.gui_update_preview()
         if self.status_bar != 'yes':
             self.gui_header_clear()
         else:
@@ -985,6 +1001,19 @@ class sncli:
 
         self.view_log  = view_log.ViewLog(self.config)
         self.view_help = view_help.ViewHelp(self.config)
+
+        self.nvalt_panes = None
+        if self.config.get_config('layout') == 'nvalt':
+            self.view_preview = \
+                view_note.ViewNote(self.config,
+                                   {
+                                    'ndb' : self.ndb,
+                                    'key' : None,
+                                    'log' : self.log
+                                   })
+            self.nvalt_panes = urwid.Columns([
+                ('weight', 1, self.view_titles),
+                ('weight', 2, urwid.LineBox(self.view_preview)) ])
 
         palette = \
           [

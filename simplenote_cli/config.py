@@ -30,6 +30,7 @@ class Config:
          'cfg_tempdir'           : '',
          'cfg_default_markdown'  : 'no',
          'cfg_sync_interval'     : '15',
+         'cfg_layout'            : 'default', # or 'nvalt'
 
          'kb_help'            : 'h',
          'kb_quit'            : 'q',
@@ -195,6 +196,7 @@ class Config:
         self.configs['tempdir'] = [ cp.get(cfg_sec, 'cfg_tempdir'), 'Temporary directory for note storage' ]
         self.configs['default_markdown'] = [ cp.get(cfg_sec, 'cfg_default_markdown'), 'Default to markdown for new notes' ]
         self.configs['sync_interval'] = [ cp.get(cfg_sec, 'cfg_sync_interval'), 'Sync interval in seconds' ]
+        self.configs['layout'] = [ cp.get(cfg_sec, 'cfg_layout'), 'Layout (default or nvalt)' ]
 
         self.keybinds = collections.OrderedDict()
         self.keybinds['help'] = [ cp.get(cfg_sec, 'kb_help'), [ 'common' ], 'Help' ]
